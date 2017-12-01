@@ -1,0 +1,52 @@
+---
+
+- name: Add Elasticsearch apt-key
+  apt_key:
+    url: "https://packages.elastic.co/GPG-KEY-elasticsearch"
+    state: present
+
+#- apt_repository: repo='deb deb http://nginx.org/packages/mainline/ubuntu/ xenial nginx' state=present filename='nginx' update_cache='yes'
+- name: elastic repo
+  apt_repository: 
+    repo: "deb https://artifacts.elastic.co/packages/5.x/apt stable main"
+    state: present
+- name: Update repositories cache and install Elasticsearch
+  apt:
+    name: elasticsearch
+    update_cache: yes
+- name: Updating the config file to restrict outside access
+  lineinfile:
+    destfile: /etc/elasticsearch/elasticsearch.yml
+    regexp: 'network.host:'
+    line: 'network.host: localhost'
+- name: Restarting Elasticsearch
+  service:
+    name: elasticsearch
+    state: started
+- name: brief pause
+  pause:
+    seconds: 30
+
+- name: Check If Index Exists
+  uri: url='http://localhost:9200/filebeat'
+       method=HEAD
+       status_code=200,404
+  register: index_status
+
+- name: Create filebeat Index
+  uri: url='http://localhost:9200/filebeat'
+        method=PUT
+        status_code=200
+  when: index_status.status == 404
+
+- name: Check If Index Exists
+  uri: url='http://localhost:9200/logstash'
+       method=HEAD
+       status_code=200,404
+  register: index_status
+
+- name: Create logstash Index
+  uri: url='http://localhost:9200/logstash'
+        method=PUT
+        status_code=200
+  when: index_status.status == 404

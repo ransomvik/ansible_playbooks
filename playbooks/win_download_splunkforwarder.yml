@@ -1,0 +1,42 @@
+---
+- hosts: test_win_servers
+  tasks:
+
+    - name: Create temp folder
+      win_file:
+         path: 'C:\Temp'
+         state: directory
+
+
+    - name: download splunk file with check (md5)
+      win_get_url:
+        url: https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=windows&version=6.5.2&product=universalforwarder&filename=splunkforwarder-6.5.2-67571ef4b87d-x64-release.msi&wget=true
+        #dest: C:\Users\toasty\Downloads\splunkforwarder652.msi
+        dest: C:\Temp\splunkforwarder652.msi
+        force: no
+
+    - name: Install Splunkforwarder
+      win_package:
+        name: Splunk Universal Forwarder
+        #path: C:\Users\toasty\Downloads\splunkforwarder652.msi
+        path: C:\Temp\splunkforwarder652.msi
+        product_id: '{E7990D9D-A04E-45E2-A54F-A16A405E977C}'
+        arguments: /quiet AGREETOLICENSE=Yes SERVICESSTARTTYPE=auto WINEVENTLOG_SEC_ENABLE=1 LAUNCHSPLUNK=0 /L*v C:\Temp\splunk_install_results.log
+
+    - name: Create directory structure
+      win_file:
+         path: 'C:\Program Files\SplunkUniversalForwarder\etc\apps\clab_all_deploymentclient\local'
+         state: directory
+
+    - name: Copy deploymentclient.conf
+      win_copy:
+         src: /etc/ansible/configs/deploymentclient.conf
+         dest: 'C:\Program Files\SplunkUniversalForwarder\etc\apps\clab_all_deploymentclient\local'
+
+    - name: Set service startup mode to auto and ensure it is started
+      win_service:
+         name: SplunkForwarder
+         start_mode: auto
+         state: started
+
+

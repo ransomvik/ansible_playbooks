@@ -1,0 +1,61 @@
+---
+- hosts: test_unix_servers
+  remote_user: root
+  tasks:
+    - name: Checking if splunk is installed
+      tags: install
+      stat: path=/opt/splunkforwarder
+      register: splunk_path
+        
+    - name: splunk is installed
+      tags: install
+      debug: msg='splunk is already installed under /opt/splunkforwarder'
+      when: splunk_path.stat.exists == true
+        
+    - name: Create splunk user 
+      user: name=splunk password=$1$SomeSalt$be4POQ21xPlMdUh.mdtK9.
+
+    - name: Push RPM package to server
+      tags: install
+      become: yes
+      become_method: sudo
+      copy: src=/etc/ansible/files/splunkforwarder652.rpm dest=/opt/splunkforwarder652.rpm owner=root group=root mode=0644
+      when: splunk_path.stat.exists == false
+        
+        
+    - name: Install RPM
+      tags: install
+      become: yes
+      become_method: sudo
+      command: rpm -ivh /opt/splunkforwarder652.rpm
+      when: splunk_path.stat.exists == false
+
+
+    - name: create deploymentclient app
+      file:
+        path=/opt/splunkforwarder/etc/apps/clab_all_deploymentclient/local
+        state=directory
+        mode=0755
+
+    - name: copy deploymentclient.conf
+      copy:
+        src=/etc/ansible/files/deploymentclient.conf
+        dest=/opt/splunkforwarder/etc/apps/clab_all_deploymentclient/local/deploymentclient.conf
+        mode=0644
+ 
+    - name: chown directory 2
+      file: dest=/opt/splunkforwarder owner=splunk group=splunk recurse=yes
+
+
+    - name: Start Splunk for the first time
+      command: runuser -l splunk -c '/opt/splunkforwarder/bin/splunk start --accept-license'  
+      become: yes
+      become_user: root
+      when: splunk_path.stat.exists == false
+
+    - name: Enable boot-start
+      tags: install
+      become: yes
+      become_method: sudo
+      shell: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
+      when: splunk_path.stat.exists == false

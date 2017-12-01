@@ -1,0 +1,54 @@
+---
+#
+# install/run filebeat elk client
+#
+
+- name: Copy filebeat yum repo file
+  copy:
+#    src=filebeat.repo
+    src=/etc/ansible/roles/filebeat/templates/filebeat.repo
+    dest=/etc/yum.repos.d/filebeat.repo
+    owner=root
+    group=root
+    mode=0644
+  become: true
+
+- name: Import Filebeat GPG Key
+  rpm_key: key=http://packages.elastic.co/GPG-KEY-elasticsearch
+    state=present
+
+- name: Install filebeat rpms
+  yum: name={{ item }} state=present
+  become: true
+  with_items:
+    - filebeat
+
+- name: Generate filebeat configuration template
+  template:
+    src=filebeat.yml
+    dest=/etc/filebeat/filebeat.yml
+    owner=root
+    group=root
+    mode=0644
+  become: true
+  register: filebeat_needs_restart
+
+- name: Generate filebeat SSL
+  template:
+    src=logstash-forwarder.crt
+    dest=/etc/pki/tls/certs/logstash-forwarder.crt
+    owner=root
+    group=root
+    mode=0644
+  become: true
+  register: filebeat_needs_restart
+
+- name: Start filebeat service
+  command: systemctl start filebeat.service
+  ignore_errors: true
+  become: true
+  when: ((filebeat_needs_restart != 0) and (logging_backend != 'fluentd'))
+
+- name: Setup filebeat service
+  service: name=filebeat state=started enabled=true
+  become: true

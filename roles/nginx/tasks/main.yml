@@ -1,0 +1,36 @@
+---
+- name: Update repositories cache and install Nginx
+  apt:
+    name: nginx
+    update_cache: yes
+- name: Make sure we can use htpasswd module
+  apt: 
+    name: python-passlib 
+    state: installed
+
+- name: Create nginx directory structure
+  file: path=/etc/nginx/conf.d/
+    state=directory
+    mode=0755
+- name: Setup Nginx reverse proxy for kibana
+  template:
+    src=kibana.conf.j2
+    dest=/etc/nginx/sites-available/default
+    owner=root
+    group=root
+    mode=0644
+  register: nginx_needs_restart
+
+- name: Password protect elastic cluster
+  htpasswd: path=/etc/nginx/conf.d/es_passwd name={{ item.username }} password={{ item.password }}  owner=root group=root mode=0644
+
+  with_items: "{{ http_auth_users }}"
+  no_log: True
+  tags:
+    - auth_users
+
+
+- name: Restarting nginx
+  service:
+    name: nginx
+    state: restarted

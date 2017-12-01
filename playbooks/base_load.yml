@@ -1,0 +1,134 @@
+---
+- hosts: test_unix_servers
+  remote_user: root
+  tasks:
+  - name: netcat install
+    yum: name=nc state=latest
+    become: true
+    become_user: root
+
+  - name: ntp
+    yum: name=ntp state=latest
+    become: true
+    become_user: root
+
+  - name: ensure ntp is running
+    service: name=ntpd state=started
+    become: true
+    become_user: root
+
+  - name: Download EPEL Repo - Centos/RHEL 7
+    get_url: url=http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-9.noarch.rpm dest=/tmp/epel-release-7-9.noarch.rpm
+    when: ansible_os_family == 'RedHat'
+
+  - name: Install EPEL Repo - Centos/RHEL 7
+    yum: pkg=/tmp/epel-release-7-9.noarch.rpm state=installed
+    when: ansible_os_family == 'RedHat'
+
+  - name: install other base services
+    yum: name={{item}} state=latest
+    become: true
+    become_user: root
+    with_items:
+     - bind-utils
+     - epel-release
+     - bzip2
+     - nano
+     - vim
+     - git
+     - htop
+     - net-tools
+     - wget
+     - policycoreutils-python
+     - vim
+     - zip
+     - unzip
+     - bonnie++
+
+  - name: fix dns 1
+    lineinfile:
+      dest: /etc/sysconfig/network-scripts/ifcfg-ens192
+      line: "DNS1=208.67.220.220"
+      state: present
+
+  - name: fix dns 2
+    lineinfile:
+      dest: /etc/sysconfig/network-scripts/ifcfg-ens192
+      line: "DNS2=208.67.222.222"
+      state: present
+
+  - name: remove bashrc
+    file:
+       state: absent
+       path: "/root/.bashrc"
+
+  - name: remove bashrc
+    file:
+       state: absent
+       path: "/root/.bashrc_help"
+
+  - name: get custom bashrc 1
+    get_url: url=http://mindnugget.com/bashrc/.bashrc dest="/root"
+
+  - name: get custom bashrc 2
+    get_url: url=http://mindnugget.com/bashrc/.bashrc_help dest="/root"
+
+
+
+- hosts: outil02
+  remote_user: root
+  tasks:
+  - name: set hostname 1
+    hostname:
+      name: outil02.obelisksec.com
+
+- hosts: outil03
+  remote_user: root
+  tasks:
+  - name: set hostname 1
+    hostname:
+      name: outil03.obelisksec.com
+
+- hosts: all
+  remote_user: root
+  vars:
+    password1: $1$Som3s@@l$KDuEXHPcbA0y7vf51egDM1
+    password2: $1$Som3s@@l$KDuEXHPcbA0y7vf51egDM1
+    sudoers:
+      - ransomvik
+      - ansible
+
+  tasks:
+    - user: name=ransomvik password={{password1}}
+    - user: name=ansible password={{password2}}
+
+    - name: Make sure we have a 'wheel' group
+      group:
+        name: wheel
+        state: present
+
+    - name: Allow 'wheel' group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%wheel'
+        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+
+    - name: Add sudoers users to wheel group
+      user:
+        name: "{{ item }}"
+        groups: wheel
+        append: yes
+      with_items: "{{ sudoers }}"
+
+    - name: copy bashrc 1
+      copy:
+        src: /root/.bashrc
+        dest: "/home/{{ item }}/.bashrc"
+      with_items: "{{ sudoers }}"
+
+    - name: copy bashrc 1
+      copy:
+        src: /root/.bashrc
+        dest: "/home/{{ item }}/.bashrc_help"
+      with_items: "{{ sudoers }}"

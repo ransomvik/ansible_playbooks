@@ -1,0 +1,31 @@
+[test_unix_servers]
+#45.62.245.30 ansible_become=root     ansible_ssh_private_key_file=/root/.ssh/ansiblekey
+#64.137.191.158 ansible_become=root     ansible_ssh_private_key_file=/root/.ssh/ansiblekey
+
+[outil02]
+#45.62.245.30
+
+[outil03]
+#64.137.191.158
+
+[elk]
+10.0.5.60 ansible_become=root     ansible_ssh_private_key_file=/root/.ssh/ansiblekey
+#64.137.170.137  ansible_become=root     ansible_ssh_private_key_file=/root/.ssh/ansiblekey
+
+[elk_filebeat]
+10.0.5.40 ansible_become=root     ansible_ssh_private_key_file=/root/.ssh/ansiblekey
+
+[test_win_servers]
+45.62.235.19
+64.137.180.220
+
+[test_win_servers:vars]
+ansible_user=toasty
+ansible_password=hello$parks$rc7
+ansible_port=5985
+ansible_connection=winrm
+ansible_winrm_scheme=http
+ansible_winrm_server_cert_validation=ignore
+
+[control_servers]
+outil01.obelisksec.com		ansible_connection=local

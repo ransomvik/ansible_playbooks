@@ -1,0 +1,7 @@
+---
+
+- hosts: elk_filebeat
+  become: yes
+  become_user: root
+  roles:
+    - { role: filebeat }

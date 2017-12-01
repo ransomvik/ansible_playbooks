@@ -1,0 +1,13 @@
+---
+
+- hosts: elk
+  #remote_user: user
+  become: yes
+  become_user: root
+  roles:
+    - { role: java }
+    - { role: elasticsearch }
+    - { role: kibana }
+    - { role: logstash }
+    - { role: nginx }
+    - { role: firewall }

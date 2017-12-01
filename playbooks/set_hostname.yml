@@ -1,0 +1,14 @@
+---
+- hosts: 10.0.5.156
+  remote_user: root
+  tasks:
+  - name: set hostname 1
+    hostname:
+      name: outil02.optivsiem.local
+
+- hosts: 10.0.5.157
+  remote_user: root
+  tasks:
+  - name: set hostname 2
+    hostname:
+      name: outil03.optivsiem.local
